@@ -1,78 +1,117 @@
-python
 import os
 import re
 import csv
 import pdfplumber
+from rdkit import Chem
+from rdkit.Chem import SaltRemover
 
-def extract_metadata_and_activities(pdf_path):
-    """
-    Функция для извлечения текстовых паттернов из PDF статьи.
-    """
-    extracted_data = []
-    
-    # Регулярные выражения для поиска ключевой информации
-    doi_pattern = re.compile(r'(10\.\d{4,9}/[-._;()/:A-Z0-9]+)', re.IGNORECASE)
-    ki_pattern = re.compile(r'(K_?i\s*[:=]\s*([\d.]+)\s*(n?M))|(IC_?50\s*[:=]\s*([\d.]+)\s*(n?M))', re.IGNORECASE)
-    
-    base_name = os.path.basename(pdf_path)
-    
-    with pdfplumber.open(pdf_path) as pdf:
-        full_text = ""
-        for page in pdf.pages:
-            text = page.extract_text()
-            if text:
-                full_text += text + "\n"
-                
-        # Базовый поиск метаданных
-        doi_match = doi_pattern.search(full_text)
-        doi = doi_match.group(1) if doi_match else "Unknown"
+class RobustChemicalExtractor:
+    def init(self):
+        self.doi_pattern = re.compile(r'(10\.\d{4,9}/[-._;()/:A-Z0-9]+)', re.IGNORECASE)
+        # Паттерн для поиска активности вида: "соединение X: Ki = Y nM" или "X: IC50 = Y"
+        self.activity_pattern = re.compile(
+            r'(?:compound|compd\.|№| ligand)?\s*([\w\-\[\]\(\)]+)\s+(?:showed|exhibited|has)?\s*(?:a\s+)?(?:K_?i|IC_?50)\s*(?:value\s+of)?\s*([<=~>\s]*[\d.]+)\s*(n?M)', 
+            re.IGNORECASE
+        )
+        self.remover = SaltRemover.SaltRemover()
+
+    def clean_value(self, val_str):
+        """Очистка числового значения от знаков сравнения (>, <, ~)"""
+        return re.sub(r'[<=~>\s]', '', val_str)
+
+    def extract_doi(self, text):
+        match = self.doi_pattern.search(text)
+        return match.group(1) if match else "Unknown DOI"
+
+    def process_pdf(self, pdf_path):
+        base_name = os.path.basename(pdf_path)
+        extracted_records = []
         
-        # Поиск табличных структур или строк с активностью
-        lines = full_text.split('\n')
-        for line in lines:
-            if any(k in line.lower() for k in ['ki', 'ic50', 'affinity', 'selectivity']):
-                # Логика выделения конкретных соединений и значений
-                matches = ki_pattern.findall(line)
-                for match in matches:
-                    val = match[1] if match[1] else match[3]
-                    metric = "Ki" if "ki" in line.lower() else "IC50"
-                    extracted_data.append({
-                        "File_Name": base_name,
-                        "DOI": doi,
-                        "Raw_Text_Line": line.strip(),
-                        "Metric": metric,
-                        "Value": val
-                    })
+        print(f"[PROCESS] Анализ файла: {base_name}")
+        
+        with pdfplumber.open(pdf_path) as pdf:
+            full_text = ""
+            
+            # Этап 1: Сбор полного текста для анализа DOI и резервного текстового парсинга
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text:
+                    full_text += text + "\n"
+            
+            doi = self.extract_doi(full_text)
+            
+            # Этап 2: Попытка структурного извлечения таблиц
+            table_count = 0
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                for table in tables:
+                    if not table or len(table) < 2:
+                        continue
                     
-    return extracted_data
+                    # Проверка на релевантность таблицы
+                    header = " ".join([str(cell).lower() for cell in table[0] if cell])
+                    if any(k in header for k in ["compound", "ki", "ic50", "structure", "activity"]):
+                        table_count += 1
+                        for row in table[1:]:
+                            if row and row[0]:
+                                # Динамический маппинг колонок (базовый вариант)
+                                comp_id = str(row[0]).strip()
+                                raw_line = " | ".join([str(c).strip() for c in row if c])
+                                extracted_records.append({
+                                    "File_Name": base_name,
+                                    "DOI": doi,
+                                    "Method": f"Table_{table_count}",
+                                    "Compound_ID": comp_id,
+                                    "Raw_Data": raw_line
+                                })
+            
+            # Этап 3: Резервный текстовый парсинг (если таблицы не распознались)
+            if not extracted_records:
+                print(f"[FALLBACK] Таблицы не найдены в {base_name}. Запуск текстового regex-анализа...")
+                lines = full_text.split("\n")
+                for line in lines:
+                    matches = self.activity_pattern.findall(line)
+                    for match in matches:
+                        comp_id, val, unit = match
+                        extracted_records.append({
+                            "File_Name": base_name,
+                            "DOI": doi,
+                            "Method": "Text_Regex",
+                            "Compound_ID": comp_id.strip(),
+                            "Raw_Data": line.strip()
+                        })
+                        
+        print(f"[INFO] Извлечено {len(extracted_records)} записей из файла {base_name}\n")
+        return extracted_records
 
-def process_folder(folder_path, output_csv):
-    """
-    Сканирует указанную папку на наличие PDF файлов и сохраняет результаты в CSV.
-    """
-    fieldnames = ["File_Name", "DOI", "Raw_Text_Line", "Metric", "Value"]
-    
-    with open(output_csv, mode='w', encoding='utf-8', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+def run_pipeline(self, folder_path, output_csv):
+        if not os.path.exists(folder_path):
+            print(f"[ERROR] Папка {folder_path} не существует.")
+            return
+            
+        all_data = []
+        files = [f for f in os.listdir(folder_path) if f.endswith('.pdf')]
         
-        for file in os.listdir(folder_path):
-            if file.endswith('.pdf'):
-                pdf_route = os.path.join(folder_path, file)
-                print(f"Обработка файла: {file}...")
-                try:
-                    records = extract_metadata_and_activities(pdf_route)
-                    for record in records:
-                        writer.writerow(record)
-                except Exception as e:
-                    print(f"Ошибка при разборе файла {file}: {e}")
+        print(f"[START] Обнаружено {len(files)} PDF-документов для экстракции.\n")
+        
+        for file in files:
+            path = os.path.join(folder_path, file)
+            try:
+                records = self.process_pdf(path)
+                all_data.extend(records)
+            except Exception as e:
+                print(f"[ERR] Ошибка при обработке {file}: {e}")
+                
+        # Сохранение в итоговый CSV
+        fieldnames = ["File_Name", "DOI", "Method", "Compound_ID", "Raw_Data"]
+        with open(output_csv, mode='w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(all_data)
+            
+        print(f"[SUCCESS] Экстракция завершена. Всего записей: {len(all_data)}. Данные сохранены в {output_csv}")
 
 if name == "main":
-    # Пример запуска пайплайна локально
-    input_folder = "./pdf_documents"
-    output_database = "extracted_chemistry_data.csv"
-    if os.path.exists(input_folder):
-        process_folder(input_folder, output_database)
-        print("Экстракция успешно завершена!")
-    else:
-        print(f"Папка {input_folder}
+    extractor = RobustChemicalExtractor()
+    # Конфигурация путей
+    extractor.run_pipeline(folder_path="./pdf_documents", output_csv="extracted_compounds_all_8_docs.csv")
