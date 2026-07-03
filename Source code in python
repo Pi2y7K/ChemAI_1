@@ -8,31 +8,31 @@ from rdkit.Chem import SaltRemover
 class RobustChemicalExtractor:
     def init(self):
         self.doi_pattern = re.compile(r'(10\.\d{4,9}/[-._;()/:A-Z0-9]+)', re.IGNORECASE)
-        # Паттерн для поиска активности вида: "соединение X: Ki = Y nM" или "X: IC50 = Y"
         self.activity_pattern = re.compile(
             r'(?:compound|compd\.|№| ligand)?\s*([\w\-\[\]\(\)]+)\s+(?:showed|exhibited|has)?\s*(?:a\s+)?(?:K_?i|IC_?50)\s*(?:value\s+of)?\s*([<=~>\s]*[\d.]+)\s*(n?M)', 
             re.IGNORECASE
         )
-        self.remover = SaltRemover.SaltRemover()
-
-    def clean_value(self, val_str):
-        """Очистка числового значения от знаков сравнения (>, <, ~)"""
-        return re.sub(r'[<=~>\s]', '', val_str)
 
     def extract_doi(self, text):
         match = self.doi_pattern.search(text)
         return match.group(1) if match else "Unknown DOI"
 
+    def clean_article_title(self, filename):
+        """Очищает имя файла от префиксов вроде 'Копия ' и расширения .pdf для использования как Title"""
+        title = filename.replace("Копия ", "").replace(".pdf", "")
+        # Делаем название более читаемым (заменяем дефисы на пробелы)
+        title = title.replace("-", " ")
+        return title.capitalize()
+
     def process_pdf(self, pdf_path):
         base_name = os.path.basename(pdf_path)
+        article_title = self.clean_article_title(base_name)
         extracted_records = []
         
         print(f"[PROCESS] Анализ файла: {base_name}")
         
         with pdfplumber.open(pdf_path) as pdf:
             full_text = ""
-            
-            # Этап 1: Сбор полного текста для анализа DOI и резервного текстового парсинга
             for page in pdf.pages:
                 text = page.extract_text()
                 if text:
@@ -40,7 +40,7 @@ class RobustChemicalExtractor:
             
             doi = self.extract_doi(full_text)
             
-            # Этап 2: Попытка структурного извлечения таблиц
+            # 1. Попытка парсинга явных таблиц
             table_count = 0
             for page in pdf.pages:
                 tables = page.extract_tables()
@@ -48,51 +48,49 @@ class RobustChemicalExtractor:
                     if not table or len(table) < 2:
                         continue
                     
-                    # Проверка на релевантность таблицы
                     header = " ".join([str(cell).lower() for cell in table[0] if cell])
                     if any(k in header for k in ["compound", "ki", "ic50", "structure", "activity"]):
                         table_count += 1
                         for row in table[1:]:
                             if row and row[0]:
-                                # Динамический маппинг колонок (базовый вариант)
                                 comp_id = str(row[0]).strip()
                                 raw_line = " | ".join([str(c).strip() for c in row if c])
                                 extracted_records.append({
-                                    "File_Name": base_name,
+                                    "Article_Title": article_title,
                                     "DOI": doi,
                                     "Method": f"Table_{table_count}",
                                     "Compound_ID": comp_id,
                                     "Raw_Data": raw_line
                                 })
             
-            # Этап 3: Резервный текстовый парсинг (если таблицы не распознались)
+            # 2. Резервный текстовый контур
             if not extracted_records:
-                print(f"[FALLBACK] Таблицы не найдены в {base_name}. Запуск текстового regex-анализа...")
+                print(f"[FALLBACK] Запуск текстового regex-анализа для: {base_name}")
                 lines = full_text.split("\n")
                 for line in lines:
                     matches = self.activity_pattern.findall(line)
                     for match in matches:
                         comp_id, val, unit = match
                         extracted_records.append({
-                            "File_Name": base_name,
+                            "Article_Title": article_title,
                             "DOI": doi,
                             "Method": "Text_Regex",
                             "Compound_ID": comp_id.strip(),
                             "Raw_Data": line.strip()
                         })
                         
-        print(f"[INFO] Извлечено {len(extracted_records)} записей из файла {base_name}\n")
+        print(f"[INFO] Извлечено {len(extracted_records)} строк для '{article_title}'\n")
         return extracted_records
 
-def run_pipeline(self, folder_path, output_csv):
+    def run_pipeline(self, folder_path, output_csv):
         if not os.path.exists(folder_path):
-            print(f"[ERROR] Папка {folder_path} не существует.")
+            print(f"[ERROR] Папка {folder_path} не найдена.")
             return
             
         all_data = []
         files = [f for f in os.listdir(folder_path) if f.endswith('.pdf')]
-        
-        print(f"[START] Обнаружено {len(files)} PDF-документов для экстракции.\n")
+
+print(f"[START] Пайплайн запущен для {len(files)} документов.\n")
         
         for file in files:
             path = os.path.join(folder_path, file)
@@ -100,18 +98,17 @@ def run_pipeline(self, folder_path, output_csv):
                 records = self.process_pdf(path)
                 all_data.extend(records)
             except Exception as e:
-                print(f"[ERR] Ошибка при обработке {file}: {e}")
+                print(f"[ERR] Ошибка обработки файла {file}: {e}")
                 
-        # Сохранение в итоговый CSV
-        fieldnames = ["File_Name", "DOI", "Method", "Compound_ID", "Raw_Data"]
+        # Сохранение итоговой реляционной структуры
+        fieldnames = ["Article_Title", "DOI", "Method", "Compound_ID", "Raw_Data"]
         with open(output_csv, mode='w', encoding='utf-8', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(all_data)
             
-        print(f"[SUCCESS] Экстракция завершена. Всего записей: {len(all_data)}. Данные сохранены в {output_csv}")
+        print(f"[SUCCESS] Экстракция завершена. Файл сохранен как: {output_csv}")
 
 if name == "main":
     extractor = RobustChemicalExtractor()
-    # Конфигурация путей
     extractor.run_pipeline(folder_path="./pdf_documents", output_csv="extracted_compounds_all_8_docs.csv")
