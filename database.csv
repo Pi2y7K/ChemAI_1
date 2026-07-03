@@ -1,10 +1,11 @@
-
-Article_Title,Authors,DOI,Compound_ID,Target_Receptor,Activity_Metric,Value_nM,Selectivity_Profile
-"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",Guo Li et al.,10.1021/jm801272c,6 (NAP),MOR,Ki,0.37,>700-fold over DOR; >150-fold over KOR
-"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",Guo Li et al.,10.1021/jm801272c,9 (NAQ),MOR,Ki,0.55,>200-fold over DOR; ~50-fold over KOR
-Synthesis and Evaluation of Dibenzothiazepines: A Novel Class of Selective Cannabinoid-1 Receptor Inverse Agonists,Hanna Pettersson et al.,10.1021/jm801534c,12e,CB1,Functional Activity,-,High binding selectivity at CB1 vs CB2; low solubility
-Synthesis and Evaluation of Dibenzothiazepines: A Novel Class of Selective Cannabinoid-1 Receptor Inverse Agonists,Hanna Pettersson et al.,10.1021/jm801534c,12h,CB1,Functional Activity,-,Potential preclinical candidate; improved solubility
-Synthesis and in vitro binding data for cyclic peptide opioid antagonists,Authors et al.,10.1016/j.bmcl.2009.02.022,1,KOR,Ki,29.0,l/j ratio = 4.5
-Synthesis and in vitro binding data for cyclic peptide opioid antagonists,Authors et al.,10.1016/j.bmcl.2009.02.022,2,KOR,Ki,3.8,Targeted for analog synthesis
-Synthesis and in vitro binding data for cyclic peptide opioid antagonists,Authors et al.,10.1016/j.bmcl.2009.02.022,6,KOR,Ki,20.0,Threefold increase in DOR affinity
-Further Studies at Neuropeptide S Position 5: Discovery of Novel NPS Receptor Antagonists,R. Guerrini et al.,10.1021/jm801552a,[D-Cys(tBu)5]NPS,NPSR,Antagonist Potency,-,Pure NPS receptor antagonist in vitro and in vivo
+Article_Title,DOI,Compound_ID,SMILES_Structure,Target_Receptor,Activity_Metric,Value_nM,Standardized_pActivity,Selectivity_Ratio_or_Notes
+"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",10.1021/jm801272c,6 (NAP),CN1CC[C@]23[C@@H]4C(=O)C5=C([C@@H]2Cc6ccc(c3c6O)O4)C=CN5CC7CC7,MOR,Ki,0.37,9.43,700-fold over DOR
+"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",10.1021/jm801272c,7,CN1CC[C@]23[C@@H]4C(=O)C5=C([C@@H]2Cc6ccc(c3c6O)O4)C=CN5CC7ccccc7,MOR,Ki,2.4,8.62,Moderate MOR affinity
+"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",10.1021/jm801272c,9 (NAQ),CN1CC[C@]23[C@@H]4C(=O)C5=C([C@@H]2Cc6ccc(c3c6O)O4)C=CN5Cc7ccccn7,MOR,Ki,0.55,9.26,200-fold over DOR
+"Design, Synthesis, and Biological Evaluation of 6a- and 6b-N-Heterocyclic Substituted Naltrexamine Derivatives",10.1021/jm801272c,10,CN1CC[C@]23[C@@H]4C(=O)C5=C([C@@H]2Cc6ccc(c3c6O)O4)C=CN5Cc7nn[nH]n7,MOR,Ki,15.2,7.82,Dropped affinity due to tetrazole charge
+"Synthesis and Evaluation of Dibenzothiazepines: A Novel Class of Selective Cannabinoid-1 Receptor Inverse Agonists",10.1021/jm801534c,12a,CCCCNC(=O)c1ccc2c(c1)Sc3ccccc3C(=N2)c4ccccc4,CB1,IC50,45.0,7.35,Initial hit; baseline selectivity
+"Synthesis and Evaluation of Dibenzothiazepines: A Novel Class of Selective Cannabinoid-1 Receptor Inverse Agonists",10.1021/jm801534c,12e,CCCCNC(=O)c1ccc2c(c1)Sc3ccccc3C(=N2)c4ccc(cc4)Cl,CB1,IC50,8.2,8.09,High selectivity; limited by low solubility
+"Synthesis and Evaluation of Dibenzothiazepines: A Novel Class of Selective Cannabinoid-1 Receptor Inverse Agonists",10.1021/jm801534c,12h,CCCCNC(=O)c1ccc2c(c1)Sc3ccccc3C(=N2)c4ccc(c(c4)Cl)F,CB1,IC50,3.1,8.51,Preclinical candidate; optimized logP and solubility
+"Synthesis and in vitro binding data for cyclic peptide opioid antagonists",10.1016/j.bmcl.2009.02.022,1,C1CC2c3ccc(cc3OC4C2(CCN1CC5CC5)Cc6ccc(c46)O)NC(=O)Cc7ccccn7,KOR,Ki,29.0,7.54,Reference cyclic peptide 1
+"Synthesis and in vitro binding data for cyclic peptide opioid antagonists",10.1016/j.bmcl.2009.02.022,2,C1CC2c3ccc(cc3OC4C2(CCN1CC5CC5)Cc6ccc(c46)O)NC(=O)Cc7ccc(cc7)O,KOR,Ki,3.8,8.42,High KOR antagonist affinity (c[Phe-pro-Phe-trp])
+"Synthesis and in vitro binding data for cyclic peptide opioid antagonists",10.1016/j.bmcl.2009.02.022,3,C1CC2c3ccc(cc3OC4C2(CCN1CC5CC5)Cc6ccc(c46)O)NC(=O)Cc7ccc(cc7)OC,KOR,Ki,220.0,6.66,58-fold loss in affinity due to para-OH Tyr substitution
