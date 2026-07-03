@@ -1,0 +1,78 @@
+python
+import os
+import re
+import csv
+import pdfplumber
+
+def extract_metadata_and_activities(pdf_path):
+    """
+    Функция для извлечения текстовых паттернов из PDF статьи.
+    """
+    extracted_data = []
+    
+    # Регулярные выражения для поиска ключевой информации
+    doi_pattern = re.compile(r'(10\.\d{4,9}/[-._;()/:A-Z0-9]+)', re.IGNORECASE)
+    ki_pattern = re.compile(r'(K_?i\s*[:=]\s*([\d.]+)\s*(n?M))|(IC_?50\s*[:=]\s*([\d.]+)\s*(n?M))', re.IGNORECASE)
+    
+    base_name = os.path.basename(pdf_path)
+    
+    with pdfplumber.open(pdf_path) as pdf:
+        full_text = ""
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text:
+                full_text += text + "\n"
+                
+        # Базовый поиск метаданных
+        doi_match = doi_pattern.search(full_text)
+        doi = doi_match.group(1) if doi_match else "Unknown"
+        
+        # Поиск табличных структур или строк с активностью
+        lines = full_text.split('\n')
+        for line in lines:
+            if any(k in line.lower() for k in ['ki', 'ic50', 'affinity', 'selectivity']):
+                # Логика выделения конкретных соединений и значений
+                matches = ki_pattern.findall(line)
+                for match in matches:
+                    val = match[1] if match[1] else match[3]
+                    metric = "Ki" if "ki" in line.lower() else "IC50"
+                    extracted_data.append({
+                        "File_Name": base_name,
+                        "DOI": doi,
+                        "Raw_Text_Line": line.strip(),
+                        "Metric": metric,
+                        "Value": val
+                    })
+                    
+    return extracted_data
+
+def process_folder(folder_path, output_csv):
+    """
+    Сканирует указанную папку на наличие PDF файлов и сохраняет результаты в CSV.
+    """
+    fieldnames = ["File_Name", "DOI", "Raw_Text_Line", "Metric", "Value"]
+    
+    with open(output_csv, mode='w', encoding='utf-8', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        for file in os.listdir(folder_path):
+            if file.endswith('.pdf'):
+                pdf_route = os.path.join(folder_path, file)
+                print(f"Обработка файла: {file}...")
+                try:
+                    records = extract_metadata_and_activities(pdf_route)
+                    for record in records:
+                        writer.writerow(record)
+                except Exception as e:
+                    print(f"Ошибка при разборе файла {file}: {e}")
+
+if name == "main":
+    # Пример запуска пайплайна локально
+    input_folder = "./pdf_documents"
+    output_database = "extracted_chemistry_data.csv"
+    if os.path.exists(input_folder):
+        process_folder(input_folder, output_database)
+        print("Экстракция успешно завершена!")
+    else:
+        print(f"Папка {input_folder}
