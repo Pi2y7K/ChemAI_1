@@ -7,4 +7,5 @@ Article_Title,DOI,Compound_ID,SMILES_Structure,Target_Receptor,Activity_Metric,V
 "Further Studies at Neuropeptide S Position 5: Discovery of Novel NPS Receptor Antagonists",10.1021/jm801552a,[D-Cys(tBu)5]NPS,CC(C)(C)SC[C@@H](C(=O)N)NC(=O)...(сокращено),NPSR,IC50,12.5,7.90,NPS Receptor Antagonist series
 "Discovery of a Novel Class of Diarylmethylpiperazine Derivatives as High Affinity Delta Opioid Ligands",10.1021/jm900123x,3a,CCN(CC)C(=O)c1ccc(cc1)C(=C2CCN(CC2)C(c3ccccc3)c4ccccc4),DOR,Ki,1.4,8.85,Diarylmethylpiperazine class
 "Synthesis and evaluation of novel imidazole derivatives as potent histamine H3 receptor antagonists",10.1016/j.ejmech.2009.04.01,24b,Clc1ccc(cc1)Cn2c(nc3ccccc32)C4CCN(CC4)CC5CO5,H3R,Ki,5.6,8.25,Histamine H3 receptor antagonists
-"Substituted 1,2-diphenylpyrroles as selective COX-2 inhibitors",10
+"Substituted 1,2-diphenylpyrroles as selective COX-2 inhibitors",10.1021/jm080234a,17,COc1ccc(cc1)C2=C(C(=O)N(C2=O)c3ccc(cc3)F)c4ccccn4,COX-2,IC50,42.0,7.38,Selective COX-2 inhibitor library
+"Structure-activity relationships of dopamine D3 receptor antagonists",10.1016/j.bmc.2009.01.054,U-99194,CN1C2CCC1C(C2)c3cccc(c3)Cl,D3R,Ki,140.0,6.85,Dopamine D3 receptor antagonists series
